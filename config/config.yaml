@@ -1,0 +1,7 @@
+server:
+  port: 8080
+  base_url: "http://localhost:8080"
+database:
+  driver: sqlite
+  dsn: shortlink.db
+snowflake:

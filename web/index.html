@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>短链服务</title>
+    <style>
+        :root {
+            --bg: #f4f6f9;
+            --card-bg: #ffffff;
+            --primary: #4f6ef7;
+            --primary-hover: #3b5de7;
+            --text: #2c3e50;
+            --sub: #7f8c8d;
+            --border: #e1e8f0;
+            --success-bg: #e8f5e9;
+            --success-text: #2e7d32;
+            --error-bg: #ffebee;
+            --error-text: #c62828;
+            --radius: 12px;
+            --shadow: 0 4px 24px rgba(0,0,0,0.06);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: var(--bg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 520px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 40px 32px;
+            text-align: center;
+        }
+
+        .logo {
+            width: 56px;
+            height: 56px;
+            background: var(--primary);
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+            color: white;
+        }
+
+        h1 {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            color: var(--sub);
+            font-size: 14px;
+            margin-bottom: 28px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input[type="url"] {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="url"]:focus {
+            border-color: var(--primary);
+        }
+
+        input[type="url"]::placeholder {
+            color: #bdc3c7;
+        }
+
+        button {
+            padding: 12px 24px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            white-space: nowrap;
+        }
+
+        button:hover {
+            background: var(--primary-hover);
+        }
+
+        button:active {
+            transform: scale(0.97);
+        }
+
+        button:disabled {
+            background: #b0bec5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result {
+            display: none;
+            padding: 16px;
+            border-radius: var(--radius);
+            margin-top: 8px;
+            text-align: left;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .result.success {
+            display: block;
+            background: var(--success-bg);
+            border: 1px solid #c8e6c9;
+        }
+
+        .result.error {
+            display: block;
+            background: var(--error-bg);
+            border: 1px solid #ffcdd2;
+        }
+
+        .result .label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .result.success .label { color: var(--success-text); }
+        .result.error   .label { color: var(--error-text); }
+
+        .short-url {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .short-url a {
+            flex: 1;
+            color: var(--primary);
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            word-break: break-all;
+        }
+
+        .short-url a:hover {
+            text-decoration: underline;
+        }
+
+        .copy-btn {
+            padding: 6px 14px;
+            font-size: 13px;
+            background: white;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .error-msg {
+            color: var(--error-text);
+            font-size: 14px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* loading spinner */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <div class="logo">🔗</div>
+        <h1>短链接生成器</h1>
+        <p class="subtitle">粘贴长链接，生成简洁短链</p>
+
+        <div class="input-group">
+            <input type="url" id="urlInput" placeholder="https://example.com/your-long-url" autofocus>
+            <button id="submitBtn" onclick="shorten()">生成</button>
+        </div>
+
+        <div id="result" class="result"></div>
+    </div>
+</div>
+
+<script>
+    const API_BASE = window.location.origin;
+
+    async function shorten() {
+        const input = document.getElementById('urlInput');
+        const btn = document.getElementById('submitBtn');
+        const resultDiv = document.getElementById('result');
+        const url = input.value.trim();
+
+        // 简单验证
+        if (!url) {
+            showError('请输入链接');
+            return;
+        }
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+            showError('请输入以 http:// 或 https:// 开头的完整链接');
+            return;
+        }
+
+        // 显示 loading
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span>生成中';
+        resultDiv.className = 'result';
+        resultDiv.style.display = 'none';
+
+        try {
+            const resp = await fetch(`${API_BASE}/api/v1/shorten`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: url })
+            });
+
+            const data = await resp.json();
+
+            if (resp.ok) {
+                showSuccess(data.short_url, data.code);
+            } else {
+                showError(data.error || '生成失败，请稍后重试');
+            }
+        } catch (err) {
+            showError('网络错误，请检查服务是否启动');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '生成';
+        }
+    }
+
+    function showSuccess(shortURL, code) {
+        const resultDiv = document.getElementById('result');
+        resultDiv.className = 'result success';
+        resultDiv.innerHTML = `
+                <div class="label">✅ 短链接已生成</div>
+                <div class="short-url">
+                    <a href="${shortURL}" target="_blank">${shortURL}</a>
+                    <button class="copy-btn" onclick="copyToClipboard('${shortURL}', this)">复制</button>
+                </div>
+            `;
+        resultDiv.style.display = 'block';
+    }
+
+    function showError(msg) {
+        const resultDiv = document.getElementById('result');
+        resultDiv.className = 'result error';
+        resultDiv.innerHTML = `
+                <div class="label">❌ 出错了</div>
+                <div class="error-msg">${msg}</div>
+            `;
+        resultDiv.style.display = 'block';
+    }
+
+    function copyToClipboard(text, btn) {
+        navigator.clipboard.writeText(text).then(() => {
+            btn.textContent = '已复制!';
+            setTimeout(() => { btn.textContent = '复制'; }, 2000);
+        }).catch(() => {
+            // 降级方案
+            const input = document.createElement('input');
+            input.value = text;
+            document.body.appendChild(input);
+            input.select();
+            document.execCommand('copy');
+            document.body.removeChild(input);
+            btn.textContent = '已复制!';
+            setTimeout(() => { btn.textContent = '复制'; }, 2000);
+        });
+    }
+
+    // 回车触发
+    document.getElementById('urlInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') shorten();
+    });
+</script>
+</body>
+</html>
