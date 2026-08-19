@@ -48,14 +48,16 @@ func main() {
 	if err != nil {
 		log.Fatalf("数据库连接失败: %v", err)
 	}
-	if err := db.AutoMigrate(&model.ShortLink{}); err != nil {
+	if err := db.AutoMigrate(&model.ShortLink{}, &model.AccessLog{}); err != nil {
 		log.Fatalf("数据库迁移失败: %v", err)
 	}
 
 	//分层初始化
 	repo := repository.NewShortLinkRepo(db)
 	svc := service.NewShortLinkSvc(repo)
-	hdl := handler.NewShortLinkHandler(svc)
+	accessLogRepo := repository.NewAccessLogRepo(db)
+	accessLogSvc := service.NewAccessLogSvc(accessLogRepo, 1000) // buffer=1000
+	hdl := handler.NewShortLinkHandler(svc, accessLogSvc)
 
 	//初始化日志
 	utils.InitLogger("debug")
@@ -85,6 +87,7 @@ func main() {
 	api := r.Group("/api/v1")
 	{
 		api.POST("/shorten", hdl.CreateShortLink)
+		api.GET("/stats/:code", hdl.GetStats)
 	}
 	r.GET("/r/:code", hdl.Redirect)
 
@@ -112,6 +115,7 @@ func main() {
 	if err := Server.Shutdown(ctx); err != nil {
 		utils.Logger.Error("Server Shutdown:", zap.Error(err))
 	}
+	accessLogSvc.Shutdown()
 	utils.Logger.Info("Server exiting")
 
 }

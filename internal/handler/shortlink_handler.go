@@ -4,19 +4,22 @@ import (
 	"fmt"
 	"net/http"
 	"shortlink/config"
+	"shortlink/internal/model"
 	"shortlink/internal/service"
 	"shortlink/internal/utils"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
 type ShortLinkHandler struct {
-	svc *service.ShortLinkSvc
+	svc          *service.ShortLinkSvc
+	accessLogSvc *service.AccessLogSvc
 }
 
-func NewShortLinkHandler(svc *service.ShortLinkSvc) *ShortLinkHandler {
-	return &ShortLinkHandler{svc: svc}
+func NewShortLinkHandler(svc *service.ShortLinkSvc, accessLogSvc *service.AccessLogSvc) *ShortLinkHandler {
+	return &ShortLinkHandler{svc: svc, accessLogSvc: accessLogSvc}
 }
 
 func (h *ShortLinkHandler) CreateShortLink(c *gin.Context) {
@@ -65,9 +68,30 @@ func (h *ShortLinkHandler) Redirect(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "短链接不存在或已失效"})
 		return
 	}
+
+	logEntry := &model.AccessLog{
+		ShortCode:  code,
+		IP:         c.ClientIP(),
+		UserAgent:  c.Request.UserAgent(),
+		Referer:    c.Request.Referer(),
+		AccessTime: time.Now(),
+	}
+	h.accessLogSvc.AsyncLog(logEntry)
+
 	utils.Logger.Info("短链接跳转",
 		zap.String("code", code),
 		zap.String("redirect_to", originalURL),
 	)
 	c.Redirect(http.StatusFound, originalURL)
+}
+
+func (h *ShortLinkHandler) GetStats(c *gin.Context) {
+	code := c.Param("code")
+	stats, err := h.accessLogSvc.GetStats(code)
+	if err != nil {
+		utils.Logger.Error("获取统计数据失败", zap.String("code", code), zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取统计失败"})
+		return
+	}
+	c.JSON(http.StatusOK, stats)
 }
