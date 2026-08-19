@@ -19,6 +19,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/libtnb/sqlite"
 	"go.uber.org/zap"
+	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
@@ -41,7 +42,7 @@ func main() {
 	case "sqlite":
 		db, err = gorm.Open(sqlite.Open(cfg.Database.DSN), &gorm.Config{})
 	case "mysql":
-		log.Fatal("暂未集成")
+		db, err = gorm.Open(mysql.Open(cfg.Database.DSN), &gorm.Config{})
 	default:
 		log.Fatalf("不支持的数据库驱动: %s", cfg.Database.Driver)
 	}
@@ -115,7 +116,11 @@ func main() {
 	if err := Server.Shutdown(ctx); err != nil {
 		utils.Logger.Error("Server Shutdown:", zap.Error(err))
 	}
+
 	accessLogSvc.Shutdown()
+	if sqlDB, err := db.DB(); err == nil {
+		_ = sqlDB.Close()
+	}
 	utils.Logger.Info("Server exiting")
 
 }

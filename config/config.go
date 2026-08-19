@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -34,6 +35,10 @@ var AppConfig *Config
 func LoadConfig(configPath string) error {
 	viper.SetConfigFile(configPath)
 	viper.SetConfigType("yaml")
+
+	viper.SetEnvPrefix("SHORTLINK")
+	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	viper.SetDefault("server.port", "8080")
 	viper.SetDefault("server.base_url", "http://localhost:8080")

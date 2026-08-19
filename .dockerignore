@@ -1,0 +1,19 @@
+# 忽略本地数据库
+*.db
+
+# 忽略编译产物
+shortlink
+*.exe
+
+# 忽略 IDE 配置
+.idea
+.vscode
+
+# 忽略 Git 目录
+.git
+
+# 忽略日志文件
+*.log
+
+# 忽略临时文件
+tmp/
